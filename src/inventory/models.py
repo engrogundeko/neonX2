@@ -2,7 +2,7 @@ from tortoise.models import Model
 from tortoise import fields
 from tortoise.contrib.pydantic import pydantic_model_creator
 
-from authentication.models import *
+from accounts.models import Users
 
 # from tortoise import Tortoise
 

@@ -39,6 +39,7 @@ class Brand(Model):
 
 class ProductInventory(Model):
     id = fields.IntField(pk=True, index=True)
+    prod_asin = fields.CharField(max_length=50)
     product = fields.ForeignKeyField("models.Product")
     brand = fields.ForeignKeyField("models.Brand")
     is_active = fields.BooleanField()
@@ -49,8 +50,8 @@ class ProductInventory(Model):
         max_digits=12,
         decimal_places=2,
     )
-    is_on_sale = fields.BooleanField()
-    is_digital = fields.BooleanField()
+    is_on_sale = fields.BooleanField(default=True)
+    is_digital = fields.BooleanField(default=False)
     weight = fields.CharField(max_length=10)
     created_at = fields.DatetimeField(auto_now_add=True)
 

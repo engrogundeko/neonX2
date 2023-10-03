@@ -5,12 +5,13 @@ from datetime import datetime, timedelta
 from typing import Annotated
 from pydantic import BaseModel
 from jose import JWTError, jwt
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 
 from .models import Users
-from .schema import userIn
+from .schema import users
 
 load_dotenv()
 
@@ -30,50 +31,6 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: str | None = None
-
-async def get_user_by_username(username: str):
-    try:
-        user = await Users.get(username=username)
-        return user
-    except Exception as e:
-        raise HTTPException({"details":str()})
-
-def hash_password(password):
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def authenticate_user(username: str, password: str):
-    user = get_user_by_username(username)
-    # print("user", user)
-    # users = userIn.from_tortoise_orm(user)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    if not verify_password(password, user.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect password",
-        )
-    return user
-
-
-def _create_access_token(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-        # print(expire)
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-        # print(expire)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_schema)]):
@@ -97,8 +54,52 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_schema)]):
     return user
 
 
+# async def get_user_by_username(username: str):
+#     try:
+#         user = await users.from_queryset_single(Users.get(username=username))
+#         return user
+#     except Exception as e:
+#         raise HTTPException({"details":str()})
+
+
+def hash_password(password):
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+# print(Users.get(id=1))
+
+
+async def authenticate_user(username: str, password: str):
+    try:
+        user = await Users.get(username=username)
+        if not user:
+            return False
+        if not verify_password(password, user.password):
+            return False
+        return user
+    except Exception as e:
+        return False
+
+
+def _create_access_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+        # print(expire)
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+        # print(expire)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
 def get_access_token(username):
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
     access_token = _create_access_token(
         data={"sub": username}, expires_delta=access_token_expires
     )

@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import time
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -24,6 +25,15 @@ driver = webdriver.Chrome()
 
 
 class ScrapeAmazon:
+    """This class is incharge of web scraping amazon website
+    To instantiate this class, the public method available are as follows
+    - get_product_attributes(product_name)
+        - This method takes in product name and returns a dictionary containing the product index, asin, name
+        ratingsm rating number, link of product, image url and image alt text
+
+    - get_detaild_product_attributes(product_name)
+    """
+
     def __init__(self) -> None:
         self.url = "https://www.amazon.com/"
         self.index = []
@@ -40,11 +50,14 @@ class ScrapeAmazon:
         # self.product_brand = []
         # self.pro_category = []
 
-    def _search_product_list(self, product_name):
+    def _search_product_list(self, product_name) -> None:
         # search_path = os.path.join(URL)
 
         # getting the url
+
+        time.sleep(2)
         driver.get(self.url)
+        time.sleep(2)
         driver.implicitly_wait(5)
 
         search = driver.find_element(By.ID, "twotabsearchtextbox")
@@ -58,13 +71,26 @@ class ScrapeAmazon:
 
         driver.implicitly_wait(5)
 
-    def _search_product_detail(self, product_name):
+    def _filter_scraping(self, product_name: str)-> None:
+        # start the process from list scraping and filter the lowest price 
+        self._search_product_list(product_name)
+
+        filter = driver.find_element(By.XPATH, '//a[class=""]')
+
+    def _search_product_detail(self, product_name: str) -> None:
         search_product = ScrapeAmazon()
         search_product._search_product_list(product_name)
 
-    def get_products_attributes(self, product_name):
-        search_product = ScrapeAmazon()
-        search_product._search_product_list(product_name)
+        details = driver.find_elements(
+            By.XPATH,
+            '//a[@class="a-link-normal s-underline-text s-underline-link-text s-link-style a-text-normal"]',
+        )
+        for detail in details:
+            button = detail.get_attribute("href")
+        button.click()
+
+    def products_attr(self, product_name: str) -> dict:
+        search_product = self._search_product_list(product_name)
 
         if not search_product:
             driver.quit()
@@ -131,8 +157,18 @@ class ScrapeAmazon:
             self.product_link.append(link)
 
             # scrape img url and alt_text
-            img_url = item.find_element()
+            img_attr = item.find_elements(
+                By.XPATH,
+                '//div[@class="a-section aok-relative s-image-fixed-height"]//img[@class="s-image"]',
+            )
+            for img in img_attr:
+                # to scrape image alternative text
+                img_alt = img.get_attribute("alt")
+                self.img_alt.append(img_alt)
 
+                # to scrape image url
+                img_url = img.get_attribute("src")
+                self.img_url.append(img_url)
 
         driver.quit()
 
@@ -153,7 +189,28 @@ class ScrapeAmazon:
         # print(response)
         return response
 
+    def prod_attr_detailed(self, product_name: str) -> dict:
+        search = self._search_product_detail(product_name)
 
-scraper = ScrapeAmazon()
-scraper.get_products_attributes("computers")
-print(scraper)
+        # starting scraping process
+        driver.close()
+
+
+    def download_image(self, url) -> None:
+        ...
+
+
+class ScrapeEbay:
+    ...
+
+
+class ScrapeAlibaba:
+    ...
+
+
+def main():
+    scraper = ScrapeAmazon()
+    scraper.products_attr("iphone")
+
+if __name__ == "__main__":
+    main()
